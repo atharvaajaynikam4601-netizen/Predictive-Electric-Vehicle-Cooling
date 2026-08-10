@@ -196,7 +196,7 @@ $$\overline{Q}_{pred} = \text{mean}\big(Q_{heat}(t \,..\, t{+}H_p)\big), \qquad 
 
 and the commanded cooling power is:
 
-$$Q_{cooling} = \begin{cases} Q_{cooling,max} & \text{incoming charge flag} \ \wedge\ T_{batt} > 28\,^\circ\text{C} \quad \text{(charger pre-cool)} \\ 0.75\,Q_{cooling,max} & \hat{\theta}_{throttle} > 50\%\ \wedge\ T_{batt} > 29\,^\circ\text{C} \quad \text{(throttle pre-cool)} \\ \text{clamp}\!\left(\overline{Q}_{pred} + \dfrac{C_{th}\,(T_{batt}-T_{set})}{\tau_{control}},\ 0,\ Q_{cooling,max}\right) & T_{batt} \ge T_{set}\ (32\,^\circ\text{C}) \\ 0 & \text{otherwise} \end{cases}$$
+$$Q_{cooling} = \begin{cases} Q_{cooling,max} & \text{incoming charge flag} \ \wedge\ T_{batt} > 28\,^\circ\text{C} \quad \text{(charger pre-cool)} \\ 0.75\,Q_{cooling,max} & \hat{\theta}_{throttle} > 50\ \wedge\ T_{batt} > 29\,^\circ\text{C} \quad \text{(throttle pre-cool, on a 0-100 scale)} \\ \text{clamp}\left(\overline{Q}_{pred} + \dfrac{C_{th}\,(T_{batt}-T_{set})}{\tau_{control}},\ 0,\ Q_{cooling,max}\right) & T_{batt} \ge T_{set}\ (32\,^\circ\text{C}) \\ 0 & \text{otherwise} \end{cases}$$
 
 This directly implements the brief's request for a controller informed by *"charge rates, throttle position, and location data."*
 
