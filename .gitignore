@@ -1,0 +1,17 @@
+# Simulink / MATLAB build artifacts
+slprj/
+*.asv
+*.m~
+*.mex*
+*.autosave
+codegen/
+*.slxc
+*.o
+sccprj/
+Icon?
+resources/.repositoryUUID*
+resources/*.icns
+
+# Project-specific scratch/output
+_report_work/
+roughwork.m
