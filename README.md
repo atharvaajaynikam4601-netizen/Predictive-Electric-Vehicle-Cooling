@@ -461,6 +461,8 @@ Open-access papers that informed or corroborate the modeling choices in Section 
 3. Ensure the products listed in Section 12.2 are installed and licensed.
 4. Run `run_project` (see [Section 8](#8-repository-structure-and-how-to-run) for details and individual-stage commands). No code edits are required — paths are resolved relative to the repository automatically.
 
+> **You do not need to open, read, or configure anything in `source_powertrain/` to run this project.** That folder is an archival export of an earlier, separate powertrain/SOC-estimation project this one builds on conceptually — every input the active pipeline actually reads (`data/uddsdc.csv`, `data/Step3_Dynamic_Loads.mat`) is already bundled independently under `data/`, resolved by path relative to each script's own location, not to anything inside `source_powertrain/`. A fresh clone with no prior context runs end-to-end with steps 1–4 above alone.
+
 ## 12.2 Dependencies and External Tools
 
 | Product | Used for | Required for |
