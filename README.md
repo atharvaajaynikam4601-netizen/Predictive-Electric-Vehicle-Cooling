@@ -31,6 +31,7 @@ A Kalman filter estimates battery SOC from noisy terminal-voltage measurements, 
 8. [Repository Structure and How to Run](#8-repository-structure-and-how-to-run)
 9. [Status and Next Steps](#9-status-and-next-steps)
 10. [Learning Outcomes](#10-learning-outcomes)
+11. [References](#11-references)
 
 ---
 
@@ -402,3 +403,34 @@ This mirrors the recommended sequence recorded in `docs/Battery_Thermal_Diagnost
 - Recognising that "predictive control saves energy" is scenario-dependent: in this project's stress scenario it instead traded higher proactive cooling spend for fewer safety excursions and lower aging exposure, which is a different and equally valid form of improvement.
 - Translating battery temperature history into engineering-relevant outcomes (Arrhenius aging, range extension) instead of stopping at a temperature plot.
 - Debugging cross-domain signal-alignment issues (unit mismatches, non-matching time vectors) that produce numerically plausible but physically wrong results — the ambient-reference correction in Section 7 changed the headline finding from an apparent 8.7 °C battery self-heating rise to a validated 1.94 °C rise above a correctly-referenced, rising ambient temperature.
+
+---
+
+# 11 References
+
+Open-access papers that informed or corroborate the modeling choices in Section 4, grouped by the subsystem they relate to.
+
+**Predictive / MPC battery thermal control**
+
+1. Zhang, Q. et al. *Two-Layer Model Predictive Battery Thermal and Energy Management Optimization for Connected and Automated Electric Vehicles*. arXiv:1809.10002. [PDF](https://arxiv.org/pdf/1809.10002) — receding-horizon MPC for battery thermal/energy management, directly relevant to the [Controller 3 — Constrained Nonlinear MPC](#49-controller-3--constrained-nonlinear-mpc) formulation in Section 4.9.
+2. *Physics-Informed Predictive Control for Integrated Electric-Vehicle Thermal Management: An Open, Real-Data-Anchored Benchmark*. arXiv:2606.22529. [PDF](https://arxiv.org/pdf/2606.22529) — open benchmark coupling battery electro-thermal-aging models under real drive cycles, relevant to the dual MATLAB/Simscape plant approach in Section 3.
+
+**SOC estimation (Kalman filtering)**
+
+3. Hu, L., Hu, R., Ma, Z., Jiang, W. *State of Charge Estimation and Evaluation of Lithium Battery Using Kalman Filter Algorithms*. PMC9785816. [Full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC9785816/) — voltage-based Kalman SOC estimation under drive-cycle conditions, corroborating the estimator in Section 4.10.
+4. *A Critical Look at Coulomb Counting Towards Improving the Kalman Filter Based State of Charge Tracking Algorithms in Rechargeable Batteries*. arXiv:2101.05435. [PDF](https://arxiv.org/pdf/2101.05435) — analyses the coulomb-counting prediction step combined with Kalman correction used in Section 4.10.
+
+**Battery heat generation (ohmic + entropic)**
+
+5. Chun, H. et al. *Comprehensive Study on Thermal Characteristics of Lithium-Ion Battery With Entropic Heat*. International Journal of Energy Research, Wiley/Hindawi, 2024. [Open access](https://onlinelibrary.wiley.com/doi/10.1155/2024/8815580) — quantifies the reversible entropic heat term used alongside the ohmic term in Section 4.5.
+
+**Battery aging (Arrhenius / SEI growth)**
+
+6. *Theory of SEI Formation in Rechargeable Batteries: Capacity Fade, Accelerated Aging and Lifetime Prediction*. arXiv:1210.3672. [PDF](https://arxiv.org/pdf/1210.3672) — foundational Arrhenius-type treatment of SEI-driven capacity fade underlying the aging model in Section 4.11.
+7. *Solid–Electrolyte Interphase During Battery Cycling: Theory of Growth Regimes*. PMC7496968. [Full text](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7496968/) — reaction/diffusion/migration growth-regime treatment of SEI formation, background for the same section.
+8. Ramesh, T.N., Rao, K.V. *An Empirical Rate Constant Based Model to Study Capacity Fading in Lithium Ion Batteries*. International Journal of Electrochemistry, Hindawi, 2015. [Open access](https://onlinelibrary.wiley.com/doi/10.1155/2015/439015) — empirical Arrhenius rate-constant capacity-fade model, the closest published analogue to the $k_{deg}(T)$ formulation in Section 4.11.
+9. Smith, K. et al. *Lithium-Ion Battery Life Model with Electrode Cracking and Dead-Lithium Formation*. NREL/TP-5700-79499. [PDF](https://docs.nrel.gov/docs/fy22osti/79499.pdf) — U.S. government (NREL) life/aging model used to cross-check the relative life-extension and range-impact estimates in Section 4.11.
+
+**Liquid cooling plant architecture**
+
+10. *A Review of Lithium-Ion Battery Thermal Management Based on Liquid Cooling and Its Evaluation Method*. ResearchGate preprint. [PDF](https://www.researchgate.net/publication/395041418_A_Review_of_Lithium-Ion_Battery_Thermal_Management_Based_on_Liquid_Cooling_and_Its_Evaluation_Method) — survey of cold-plate/liquid-loop architectures matching the Simscape Fluids plant topology (pump, cold plate, radiator, reservoir) described in Section 3.
