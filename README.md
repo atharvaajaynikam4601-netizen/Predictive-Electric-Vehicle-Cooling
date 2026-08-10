@@ -32,6 +32,7 @@ A Kalman filter estimates battery SOC from noisy terminal-voltage measurements, 
 9. [Status and Next Steps](#9-status-and-next-steps)
 10. [Learning Outcomes](#10-learning-outcomes)
 11. [References](#11-references)
+12. [Setup, Dependencies, and Contact](#12-setup-dependencies-and-contact)
 
 ---
 
@@ -448,3 +449,32 @@ Open-access papers that informed or corroborate the modeling choices in Section 
 **Liquid cooling plant architecture**
 
 10. *A Review of Lithium-Ion Battery Thermal Management Based on Liquid Cooling and Its Evaluation Method*. ResearchGate preprint. [PDF](https://www.researchgate.net/publication/395041418_A_Review_of_Lithium-Ion_Battery_Thermal_Management_Based_on_Liquid_Cooling_and_Its_Evaluation_Method) — survey of cold-plate/liquid-loop architectures matching the Simscape Fluids plant topology (pump, cold plate, radiator, reservoir) described in Section 3.
+
+---
+
+# 12 Setup, Dependencies, and Contact
+
+## 12.1 Setup Instructions
+
+1. Clone or download this repository.
+2. Open MATLAB and set the **Current Folder** to the repository root (the folder containing `run_project.m`).
+3. Ensure the products listed in Section 12.2 are installed and licensed.
+4. Run `run_project` (see [Section 8](#8-repository-structure-and-how-to-run) for details and individual-stage commands). No code edits are required — paths are resolved relative to the repository automatically.
+
+## 12.2 Dependencies and External Tools
+
+| Product | Used for | Required for |
+|---|---|---|
+| MATLAB | Core scripting, all numerical modeling | Everything |
+| Optimization Toolbox (`fmincon`) | Receding-horizon MPC solve (Section 4.9) | `scripts/Dynamic_Loads.m`, `models/+controllers/MPCCoolingController.m` |
+| Simulink | Block-diagram plant and controller models | `models/*.slx`, Steps 3–4 of `run_project` |
+| Simscape Fluids | Cold plate, pump, radiator, reservoir, thermal liquid network | `models/EV_Predictive_Cooling_Plant*.slx` |
+| Stateflow | Embedded MATLAB Function controller logic inside the reactive Simscape model | `models/EV_Predictive_Cooling_Plant_Reactive.slx` |
+
+No non-MATLAB dependencies, external executables, or Python libraries are required. All input data (`data/uddsdc.csv`, `data/Step3_Dynamic_Loads.mat`) is bundled in the repository — no external downloads are needed to run the project end-to-end.
+
+If Simulink, Simscape Fluids, or Optimization Toolbox are unavailable, `run_project` still completes its MATLAB-only stages (Steps 1–2) and reports which later steps were skipped and why, rather than failing silently.
+
+## 12.3 Contact
+
+Atharva Ajay Nikam — [github.com/atharvaajaynikam4601-netizen](https://github.com/atharvaajaynikam4601-netizen)
