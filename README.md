@@ -188,7 +188,7 @@ Three forecast signals feed the decision logic:
 
 $$d_{charger} = s_{charger} - s_{route}(t) \qquad \text{(route-position telematics)}$$
 
-$$\text{incoming\_charge} = \big(d_{charger} > 0\big) \ \wedge\ \big(t_{charger} \le H_p\big)$$
+$$\text{incoming charge flag} = \big(d_{charger} > 0\big) \ \wedge\ \big(t_{charger} \le H_p\big)$$
 
 $$\hat{\theta}_{throttle} = \max\big(\theta_{throttle}(t \,..\, t{+}15\text{s})\big) \qquad \text{(throttle-demand lookahead)}$$
 
@@ -196,7 +196,7 @@ $$\overline{Q}_{pred} = \text{mean}\big(Q_{heat}(t \,..\, t{+}H_p)\big), \qquad 
 
 and the commanded cooling power is:
 
-$$Q_{cooling} = \begin{cases} Q_{cooling,max} & \text{incoming\_charge} \ \wedge\ T_{batt} > 28\,^\circ\text{C} \quad \text{(charger pre-cool)} \\[6pt] 0.75\,Q_{cooling,max} & \hat{\theta}_{throttle} > 50\%\ \wedge\ T_{batt} > 29\,^\circ\text{C} \quad \text{(throttle pre-cool)} \\[6pt] \text{clamp}\!\left(\overline{Q}_{pred} + \dfrac{C_{th}\,(T_{batt}-T_{set})}{\tau_{control}},\ 0,\ Q_{cooling,max}\right) & T_{batt} \ge T_{set}\ (32\,^\circ\text{C}) \\[10pt] 0 & \text{otherwise} \end{cases}$$
+$$Q_{cooling} = \begin{cases} Q_{cooling,max} & \text{incoming charge flag} \ \wedge\ T_{batt} > 28\,^\circ\text{C} \quad \text{(charger pre-cool)} \\[6pt] 0.75\,Q_{cooling,max} & \hat{\theta}_{throttle} > 50\%\ \wedge\ T_{batt} > 29\,^\circ\text{C} \quad \text{(throttle pre-cool)} \\[6pt] \text{clamp}\!\left(\overline{Q}_{pred} + \dfrac{C_{th}\,(T_{batt}-T_{set})}{\tau_{control}},\ 0,\ Q_{cooling,max}\right) & T_{batt} \ge T_{set}\ (32\,^\circ\text{C}) \\[10pt] 0 & \text{otherwise} \end{cases}$$
 
 This directly implements the brief's request for a controller informed by *"charge rates, throttle position, and location data."*
 
