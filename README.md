@@ -1,4 +1,6 @@
-# Project Number - 194: Predictive Electric Vehicle Cooling: Simscape Fluids Battery Thermal Plant with Reactive, Lookahead-Predictive, and Nonlinear MPC Controllers in MATLAB/Simulink
+# Project Number - 194: Predictive Electric Vehicle Cooling
+
+*Simscape Fluids battery thermal plant with reactive, lookahead-predictive, and nonlinear MPC controllers in MATLAB/Simulink.*
 
 Solution to MATLAB and Simulink Challenge Project 194, "Predictive Electric Vehicle Cooling."
 
