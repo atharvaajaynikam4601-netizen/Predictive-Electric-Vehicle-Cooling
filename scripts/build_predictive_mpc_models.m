@@ -71,11 +71,23 @@ for i = 1:size(variants, 1)
     %   MATLAB Function/out:1 -> Scope Block1/in:1
     % Delete it and add a MATLAB System block with the same 1-in/1-out
     % interface, then reconnect it exactly the same way.
+    %
+    % delete_block on the controller does not always fully clear the
+    % branched output line (one source feeding both the PS Converter and
+    % the scope): a stub can be left attached to a destination port,
+    % which then makes add_line fail with "The destination port already
+    % has a line connection". clearInportLine defensively removes any
+    % line already attached to each destination port before rewiring, so
+    % this is robust regardless of which port was left occupied.
     delete_block(controllerBlock);
 
     add_block('simulink/User-Defined Functions/MATLAB System', newBlockPath, ...
         'Position', controllerPosition);
     set_param(newBlockPath, 'System', controllerClass);
+
+    clearInportLine(newName, 'Cooling Controller', 1);
+    clearInportLine(newName, 'Simulink-PS Converter1', 1);
+    clearInportLine(newName, 'Scope Block1', 1);
 
     add_line(newName, 'Unit Delay/1', [newBlockName '/1'], 'autorouting', 'on');
     add_line(newName, [newBlockName '/1'], 'Simulink-PS Converter1/1', 'autorouting', 'on');
@@ -91,3 +103,17 @@ fprintf('\n[DONE] Built predictive-lookahead and MPC Simscape Fluids plant varia
 fprintf('Load Q_heat_ts/T_amb_ts into the base workspace, then simulate either model, e.g.:\n');
 fprintf('  run("scripts/ev_eneergy_model_realistic_predictive_cooling.m")\n');
 fprintf('  sim("EV_Predictive_Cooling_Plant_PredictiveLookahead.slx")\n');
+
+function clearInportLine(model, blockName, portNumber)
+%CLEARINPORTLINE  Delete any line already attached to a block's input
+%   port, if one exists. Defensive helper so add_line never fails with
+%   "The destination port already has a line connection".
+blockPath = [model '/' blockName];
+lineHandles = get_param(blockPath, 'LineHandles');
+if isfield(lineHandles, 'Inport') && numel(lineHandles.Inport) >= portNumber
+    h = lineHandles.Inport(portNumber);
+    if h ~= -1 && ishandle(h)
+        delete_line(h);
+    end
+end
+end

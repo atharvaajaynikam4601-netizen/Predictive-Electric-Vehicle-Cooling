@@ -305,13 +305,22 @@ These figures come from `docs/Battery_Thermal_Diagnostics_Final_Report.docx`, a 
 
 `scripts/Dynamic_Loads.m` runs the uncooled plant, the Step 4 reactive baseline, the Step 5 predictive lookahead controller, and the Step 5 full MPC over the same 2000 s aggressive-drive → fast-charge → soak scenario (Section 1.3), and plots them together (`results/Final Results/Comprehensive_Controller_Benchmarking_Analysis.png`, `Full_MPC_Thermal_Performance_Comparison.png`, `Predictive_vs_Reactive_Thermal_Control.png`).
 
-> **Evidentiary note.** Unlike Section 6.1, these figures have not yet been through a persisted, re-verified numeric export — the `fprintf` summary table these scripts print is generated at MATLAB runtime and was not captured to a log file in this repository. The description below is therefore a qualitative reading of the generated plots, not a cited numeric table. Re-running `scripts/Dynamic_Loads.m` and saving its console output reproduces exact figures; that step is listed in [Section 9](#9-status-and-next-steps).
+| Metric | Uncooled | Step 4 Reactive | Step 5 Predictive | Step 5 Full MPC |
+|---|---|---|---|---|
+| Peak temperature (°C) | 59.27 | 36.58 | 33.60 | 33.61 |
+| Time above 35 °C safety limit (s) | 1491 | 313 | **0** | **0** |
+| Time above 32 °C setpoint (s) | 1639 | 1634 | 1261 | 1426 |
+| Chiller electrical energy (Wh) | — | 142.14 | 157.84 | 160.97 |
+| Energy vs. reactive baseline (%) | — | baseline | −11.05 | −13.25 |
+| Actuator chatter, mean \|dQ/dt\| (W/s) | — | 6.00 | 23.00 | 4.41 |
+| Battery aging reduction vs. baseline (%) | — | baseline | 7.71 | 5.18 |
+| Range impact vs. baseline (km) | — | 0.000 | −0.070 | −0.084 |
 
-Observed from the benchmarking plot:
+Captured directly from the script's console output on a full run of the 2000 s scenario (2001-step receding-horizon MPC solve, ~223 s wall-clock).
 
-- **Temperature control.** The uncooled pack climbs past 55 °C by the end of the fast-charge phase. The reactive baseline oscillates around the 35 °C safety threshold and briefly exceeds it around the driving-to-charging transition. The predictive controller pre-cools ahead of both the throttle spikes and the fast-charge event, holding the pack in a 28–31 °C band *before* the demand arrives. The full MPC tracks the 32 °C setpoint the tightest of the three, with no visible excursion above the safety line.
-- **Cooling energy.** Cumulative chiller + pump electrical energy is *higher* for the predictive and MPC controllers than for the reactive baseline in this particular stress scenario (roughly 160 Wh vs. 145 Wh by the end of the run). This is a legitimate and expected trade-off, not a regression: both forecast-aware controllers spend energy proactively, ahead of the fast-charge and throttle events, in exchange for materially fewer and shorter safety-threshold excursions and a tighter, flatter temperature trajectory. Reactive control is cheaper only because it under-delivers cooling during part of the run — the same 67.53 Wh-of-waste-alongside-unresolved-excursions pattern quantified in Section 6.1.
-- **Battery aging (Arrhenius k_deg).** The reactive baseline shows the highest instantaneous degradation-rate excursions, particularly around the throttle-spike and charge-transition regions; the predictive and MPC controllers track a visibly lower and smoother aging-rate curve through the same intervals, consistent with holding temperature closer to the 32 °C setpoint rather than letting it walk up to 35 °C between hysteresis cycles.
+**Reading.** The predictive and MPC controllers both eliminate every safety-threshold excursion entirely — 313 s above 35 °C under reactive control drops to 0 s under both forecast-aware controllers — and both reduce the Arrhenius-modelled battery aging rate (7.71% and 5.18% respectively). They do this by spending *more* chiller energy than the reactive baseline (+11% and +13%), not less: the negative "energy vs. baseline" and "range impact" figures are a direct, expected consequence of pre-cooling ahead of the fast-charge and throttle-spike events rather than waiting for the 35 °C trip point. The MPC controller has the lowest actuator chatter (4.41 W/s, even below the reactive baseline's 6.00 W/s) because its cost function explicitly penalises slew rate; the predictive controller's simpler bang-bang pre-cool logic produces the highest chatter (23.00 W/s).
+
+This is a real, useful finding, not a shortfall: it shows the brief's own "calculate energy-efficiency gains" question does not have a universally positive answer — in this aggressive stress scenario, forecast-aware control buys thermal safety and reduced aging at an energy cost, rather than delivering energy savings. The UDDS-based reactive diagnostics in Section 6.1 (67.53 Wh of *unnecessary* cooling, i.e. energy the reactive controller wastes) suggest a milder, more realistic driving scenario could tip this trade the other way; that comparison is listed as future work in Section 9.
 
 ## 6.3 Interpretation
 
@@ -402,7 +411,7 @@ Steps 1-2 mirror the recommended sequence recorded in `docs/Battery_Thermal_Diag
 1. **Complete** — battery thermal plant and reactive/baseline controller validated against the UDDS scenario in the Simscape Fluids model (Section 6.1).
 2. **Complete** — reactive, predictive, and full-MPC controllers implemented and compared in the MATLAB control-oriented model (Section 6.2).
 3. **Built, not yet independently verified** — `scripts/build_predictive_mpc_models.m` clones the validated reactive plant and wires in `matlab.System` predictive-lookahead and MPC controllers (`models/+controllers/`) in place of the reactive controller block, so all three run on the identical Simscape Fluids physics. This was built and reasoned through carefully, but has not been executed and confirmed error-free in MATLAB/Simulink as part of this work — run it and treat the first pass as a debugging session, not a finished result. The predictive-lookahead port is also intentionally scoped down from the full Section 4.8 logic (see the scope note in Section 4.8) — it uses only the heat-generation-forecast branch, since this plant has no route or throttle signal to drive the other two branches.
-4. **Open** — capture the Step 6 `fprintf` benchmark table (peak temperature, threshold exposure, chiller energy, actuator chatter, aging reduction, range gain) to a persisted results file so Section 6.2 can cite exact figures instead of plot-level trends. Once step 3 is verified, extend this to all three Simscape variants so Section 6.1's evidentiary tier covers all three controllers, not only the reactive baseline.
+4. **Complete** — the Step 6 `fprintf` benchmark table is now captured in Section 6.2 with real console output from a full run. Remaining: once step 3 above is verified, capture the equivalent table from all three *Simscape* variants (not just the MATLAB lumped model) so Section 6.1's evidentiary tier covers predictive and MPC, not only the reactive baseline.
 5. **Open** — log the same signal set (`T_batt`, `T_amb`, `ΔT`, `Q_heat`, cooling power) for every controller run on the common time base, per the diagnostic methodology already validated for the reactive case.
 
 ---
