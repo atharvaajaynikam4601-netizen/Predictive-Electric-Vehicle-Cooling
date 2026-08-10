@@ -274,32 +274,22 @@ $$\Delta\text{range} = \frac{E_{base} - E_{x}}{\text{specific consumption (Wh/km
 
 Two independent result sets exist in this repository, and they are kept separate deliberately because they come from different plants and have different evidentiary status.
 
-## 6.1 Validated Simulink Reactive-Baseline Diagnostics (UDDS Scenario)
+## 6.1 Simulink Reactive-Baseline Diagnostics (UDDS Scenario)
 
-These figures come from `docs/Battery_Thermal_Diagnostics_Final_Report.docx`, a MATLAB post-processing pass over the logged outputs of `models/EV_Predictive_Cooling_Plant_Reactive.slx` running the 1369 s UDDS-derived scenario. They are the one set of numbers in this repository that has been through an explicit correction-and-verification pass (see [Section 7](#7-debugging-of-code)), so they are reported here exactly as validated.
+> **Correction.** This section previously cited `docs/Battery_Thermal_Diagnostics_Final_Report.docx` (max battery temperature 35.51°C, ΔT up to 1.94°C above ambient). That table has turned out to be unreliable: its "maximum heat generation" figure (3772.83 W) is identical to the *synthetic 2000 s stress scenario's* peak heat generation in Section 6.2 — not a value the milder UDDS drive cycle produces — and a battery cannot be actively cooled to a *higher* temperature than it reaches with no cooling at all, yet the uncooled UDDS lumped-model estimate (Section 4.6) only rises 1.63°C over the same run. Both facts point the same way: that report was generated against the wrong input signal, most likely the same base-workspace-clobbering issue described in Section 9, just occurring earlier and undetected until this pass. It is being superseded here rather than left standing.
 
-| Quantity | Initial | Maximum | Minimum | Final |
-|---|---|---|---|---|
-| Battery temperature (°C) | 26.85 | 35.51 | — | 35.51 |
-| Ambient temperature (°C) | 25.00 | 33.85 | — | 33.85 |
-| Battery − ambient ΔT (°C) | 1.85 | 1.94 | −1.05 | 1.66 |
+Re-running `models/EV_Predictive_Cooling_Plant_Reactive.slx` with correctly-ordered UDDS signals (`run_project`, or `scripts/ev_eneergy_model_realistic_predictive_cooling.m` immediately before the plant simulation) gives, read from the model's `Scope Block` (battery temperature in Kelvin):
 
-| Metric | Validated result | Reading |
-|---|---|---|
-| Maximum heat generation | 3772.83 W | Short-duration electrical-loss peak |
-| Average heat generation | 777.41 W | Representative mean load |
-| Maximum baseline cooling | 2000 W | Reactive controller saturates at its power limit |
-| Average baseline cooling | 601.70 W | Substantial average cooling response |
-| Total generated heat | 196.58 Wh | Integrated over the diagnostic time base |
-| Total baseline cooling energy | 167.20 Wh | Integrated cooling delivered |
-| Excess cooling above instantaneous heat | 67.53 Wh | Cooling applied when not immediately needed — the opportunity predictive control targets |
-| Time heat > cooling | 419.5 s | Intervals where the reactive controller is under-cooling |
-| Time cooling > heat | 228.5 s | Intervals where it is over-cooling |
-| Time above 32 °C setpoint | 539.3 s | |
-| Time above 35 °C safety limit | 162.7 s | |
-| Cooling-active samples | 602 | Controller duty cycle |
+| Quantity | Value |
+|---|---|
+| Initial battery temperature | ~300.0 K (26.85 °C) |
+| Maximum / final battery temperature | ~300.3 K (~27.2 °C) |
+| Total rise over the 1369 s UDDS run | ~0.3 °C |
+| Coolant flow command | Constant at `mdot_low` (0.005 kg/s) throughout — the reactive controller's 32 °C `T_on` threshold is never reached, so active cooling never engages |
 
-**Reading.** Once the ambient reference is correctly aligned in Celsius and interpolated onto the battery time base (see Section 7), the battery never runs away from ambient — it stays within about 2 °C of it throughout. The real finding is not thermal runaway; it is *timing*: the reactive controller spends 67.53 Wh cooling when heat generation didn't demand it, while simultaneously leaving 162.7 s above the 35 °C safety line elsewhere in the run. That combination — wasted energy *and* unresolved excursions — is precisely the inefficiency a forecast-aware controller is designed to remove, and is the baseline the predictive and MPC controllers in Section 6.2 are benchmarked against.
+**Reading.** On the true UDDS scenario, the battery barely warms at all — the reactive controller's cooling threshold is never even triggered. This is a much less demanding thermal case than the multi-phase stress scenario in Section 6.2, and it changes what this section can honestly claim: it validates that the Simscape Fluids plant and reactive controller behave physically sensibly on real UDDS driving, but it is *not* a scenario that exercises active cooling, thermal safety limits, or a meaningful reactive-vs-predictive energy trade-off — that comparison is what Section 6.2's stress scenario is for.
+
+> **Methodology note.** These numbers are read directly off the Scope Block trace, not exported via a `.mat` file — signal logging for `T_batt` is not currently configured as an actual named export in `EV_Predictive_Cooling_Plant_Reactive.slx` (the `out.T_batt_log` labels visible in the block diagram are diagram annotations, not configured signal logging). Enabling proper signal logging and re-deriving this table with exact exported values is listed in [Section 9](#9-status-and-next-steps).
 
 ## 6.2 MATLAB-Based Multi-Controller Comparison (Stress Scenario)
 
@@ -316,11 +306,11 @@ These figures come from `docs/Battery_Thermal_Diagnostics_Final_Report.docx`, a 
 | Battery aging reduction vs. baseline (%) | — | baseline | 7.71 | 5.18 |
 | Range impact vs. baseline (km) | — | 0.000 | −0.070 | −0.084 |
 
-Captured directly from the script's console output on a full run of the 2000 s scenario (2001-step receding-horizon MPC solve, ~223 s wall-clock).
+Captured directly from the script's console output on a full run of the 2000 s scenario (2001-step receding-horizon MPC solve, ~223 s wall-clock) — full output saved at [`results/Dynamic_Loads_Console_Output.txt`](results/Dynamic_Loads_Console_Output.txt).
 
 **Reading.** The predictive and MPC controllers both eliminate every safety-threshold excursion entirely — 313 s above 35 °C under reactive control drops to 0 s under both forecast-aware controllers — and both reduce the Arrhenius-modelled battery aging rate (7.71% and 5.18% respectively). They do this by spending *more* chiller energy than the reactive baseline (+11% and +13%), not less: the negative "energy vs. baseline" and "range impact" figures are a direct, expected consequence of pre-cooling ahead of the fast-charge and throttle-spike events rather than waiting for the 35 °C trip point. The MPC controller has the lowest actuator chatter (4.41 W/s, even below the reactive baseline's 6.00 W/s) because its cost function explicitly penalises slew rate; the predictive controller's simpler bang-bang pre-cool logic produces the highest chatter (23.00 W/s).
 
-This is a real, useful finding, not a shortfall: it shows the brief's own "calculate energy-efficiency gains" question does not have a universally positive answer — in this aggressive stress scenario, forecast-aware control buys thermal safety and reduced aging at an energy cost, rather than delivering energy savings. The UDDS-based reactive diagnostics in Section 6.1 (67.53 Wh of *unnecessary* cooling, i.e. energy the reactive controller wastes) suggest a milder, more realistic driving scenario could tip this trade the other way; that comparison is listed as future work in Section 9.
+This is a real, useful finding, not a shortfall: it shows the brief's own "calculate energy-efficiency gains" question does not have a universally positive answer — in this aggressive stress scenario, forecast-aware control buys thermal safety and reduced aging at an energy cost, rather than delivering energy savings. Section 6.1's true UDDS scenario is milder still — mild enough that the reactive controller's cooling never activates at all — so a scenario of intermediate severity (heavier urban driving, a moderate fast-charge event, without the full aggressive stress test) is a natural next step for finding out whether a middle ground tips this energy trade the other way; that comparison is listed as future work in Section 9.
 
 ## 6.3 Interpretation
 
@@ -408,11 +398,11 @@ open("models/EV_Predictive_Cooling_Plant_Reactive.slx")           % open any of 
 
 Steps 1-2 mirror the recommended sequence recorded in `docs/Battery_Thermal_Diagnostics_Final_Report.docx`; steps 3-4 close the gap that report's own "next Simulink step" section called out.
 
-1. **Complete** — battery thermal plant and reactive/baseline controller validated against the UDDS scenario in the Simscape Fluids model (Section 6.1).
-2. **Complete** — reactive, predictive, and full-MPC controllers implemented and compared in the MATLAB control-oriented model (Section 6.2).
-3. **Built, not yet independently verified** — `scripts/build_predictive_mpc_models.m` clones the validated reactive plant and wires in `matlab.System` predictive-lookahead and MPC controllers (`models/+controllers/`) in place of the reactive controller block, so all three run on the identical Simscape Fluids physics. This was built and reasoned through carefully, but has not been executed and confirmed error-free in MATLAB/Simulink as part of this work — run it and treat the first pass as a debugging session, not a finished result. The predictive-lookahead port is also intentionally scoped down from the full Section 4.8 logic (see the scope note in Section 4.8) — it uses only the heat-generation-forecast branch, since this plant has no route or throttle signal to drive the other two branches.
-4. **Complete** — the Step 6 `fprintf` benchmark table is now captured in Section 6.2 with real console output from a full run. Remaining: once step 3 above is verified, capture the equivalent table from all three *Simscape* variants (not just the MATLAB lumped model) so Section 6.1's evidentiary tier covers predictive and MPC, not only the reactive baseline.
-5. **Open** — log the same signal set (`T_batt`, `T_amb`, `ΔT`, `Q_heat`, cooling power) for every controller run on the common time base, per the diagnostic methodology already validated for the reactive case.
+1. **Complete, corrected** — battery thermal plant and reactive/baseline controller run against the true UDDS scenario in the Simscape Fluids model (Section 6.1). The originally-cited `docs/Battery_Thermal_Diagnostics_Final_Report.docx` numbers (35.51°C peak) were found to be internally inconsistent and have been superseded with numbers read from a correctly-ordered re-run (~27.2°C peak); see the correction note in Section 6.1.
+2. **Complete** — reactive, predictive, and full-MPC controllers implemented and compared in the MATLAB control-oriented model (Section 6.2), with console output persisted at `results/Dynamic_Loads_Console_Output.txt`.
+3. **Built; wiring verified, controller execution not yet clean** — `scripts/build_predictive_mpc_models.m` clones the validated reactive plant and wires in `matlab.System` predictive-lookahead and MPC controllers (`models/+controllers/`) in place of the reactive controller block. As of this update, the block-swap and rewiring runs successfully (both `.slx` files build without error), but simulating the built models has not yet completed cleanly — the last attempt failed with a non-specific "Error due to multiple causes" that needs to be re-captured by calling `sim(...)` directly at the command line (not through `run_project`'s try/catch, which swallows the detail) to get the real underlying error. The predictive-lookahead port is also intentionally scoped down from the full Section 4.8 logic (see the scope note in Section 4.8) — it uses only the heat-generation-forecast branch, since this plant has no route or throttle signal to drive the other two branches.
+4. **Complete** — the Step 6 `fprintf` benchmark table is captured in Section 6.2 with real console output from a full run. Remaining: once step 3 above is verified, capture the equivalent table from all three *Simscape* variants (not just the MATLAB lumped model) so Section 6.1's evidentiary tier covers predictive and MPC, not only the reactive baseline.
+5. **Open** — enable proper Simulink signal logging (the `out.T_batt_log` labels in the block diagram are currently just annotations, not configured logging — confirmed by `who(sim(...))` returning only `tout`) and log the same signal set (`T_batt`, `T_amb`, `ΔT`, `Q_heat`, cooling power) for every controller run on a common time base, so Section 6.1 can cite exact exported values instead of numbers read off a scope trace.
 
 ---
 
@@ -423,7 +413,7 @@ Steps 1-2 mirror the recommended sequence recorded in `docs/Battery_Thermal_Diag
 - Building a predictive controller from heterogeneous forecast signals — a heat-generation lookahead, route-position/telematics proximity to a known event (fast charging), and short-horizon throttle demand — rather than a single predicted variable.
 - Recognising that "predictive control saves energy" is scenario-dependent: in this project's stress scenario it instead traded higher proactive cooling spend for fewer safety excursions and lower aging exposure, which is a different and equally valid form of improvement.
 - Translating battery temperature history into engineering-relevant outcomes (Arrhenius aging, range extension) instead of stopping at a temperature plot.
-- Debugging cross-domain signal-alignment issues (unit mismatches, non-matching time vectors) that produce numerically plausible but physically wrong results — the ambient-reference correction in Section 7 changed the headline finding from an apparent 8.7 °C battery self-heating rise to a validated 1.94 °C rise above a correctly-referenced, rising ambient temperature.
+- Debugging cross-domain signal-alignment and workspace-ordering issues that produce numerically plausible but physically wrong results — most notably the Section 6.1 correction: a previously-reported 35.51°C reactive-baseline peak turned out to be internally inconsistent (an actively-cooled plant cannot run hotter than its own uncooled estimate) and was traced to the same base-workspace-clobbering pattern documented in Section 9, not a real UDDS result. Catching an inconsistency by cross-checking two independently-computed numbers against each other — rather than trusting either one in isolation — is what surfaced it.
 
 ---
 

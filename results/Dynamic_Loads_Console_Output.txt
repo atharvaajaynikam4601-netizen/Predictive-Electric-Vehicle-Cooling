@@ -1,0 +1,77 @@
+Console output captured from a full run of scripts/Dynamic_Loads.m
+(the MATLAB-only reactive vs. predictive vs. MPC controller comparison,
+2000 s aggressive-drive -> fast-charge -> soak scenario). Cited in the
+project README, Section 6.2.
+
+========================================================
+     STEP 4: BASELINE CONTROLLER PERFORMANCE SUMMARY
+========================================================
+Uncooled Max Temperature    : 59.27 °C
+Baseline Max Temperature    : 36.58 °C
+Total Active Cooling Energy : 142.14 Wh
+Total Cooling Runtime       : 602 seconds
+========================================================
+
+
+========================================================
+     STEP 5: PREDICTIVE CONTROLLER PERFORMANCE SUMMARY
+========================================================
+Uncooled Max Temperature       : 59.27 °C
+Step 4 Baseline Max Temp       : 36.58 °C
+Step 5 Predictive Max Temp     : 33.60 °C
+Baseline Active Energy         : 142.14 Wh
+Predictive Active Energy       : 157.84 Wh
+Energy Savings vs. Baseline    : -11.05 %
+========================================================
+
+Running Full Receding-Horizon MPC Simulation over 2001 steps...
+
+========================================================
+     STEP 5: FULL MPC PERFORMANCE SUMMARY (COMPLETED)
+========================================================
+Uncooled Peak Temperature      : 59.27 °C
+Step 4 Baseline Max Temp       : 36.58 °C
+Step 5 Full MPC Max Temp       : 33.61 °C
+Baseline Active Energy         : 142.14 Wh
+Full MPC Active Energy         : 160.97 Wh
+Energy Savings vs. Baseline    : -13.25 %
+========================================================
+
+
+Computing Step 6 Comparative Benchmarks & Advanced Degradation Metrics...
+
+=========================================================================================
+                 STEP 6: COMPREHENSIVE THERMAL CONTROLLER BENCHMARK
+=========================================================================================
+Metric                         | Uncooled   | Step 4 Base  | Step 5 Pred  | Step 5 MPC
+-----------------------------------------------------------------------------------------
+Peak Temperature (°C)          | 59.27      | 36.58        | 33.60        | 33.61
+Time > 35°C Limit (s)          | 1491       | 313          | 0            | 0
+Time > 32°C Setpoint (s)       | 1639       | 1634         | 1261         | 1426
+Chiller Energy (Wh)            | N/A        | 142.14       | 157.84       | 160.97
+Energy Savings vs Base (%)     | N/A        | Baseline     | -11.05       | -13.25
+Actuator Chatter (W/s)         | N/A        | 6.00         | 23.00        | 4.41
+Battery Aging Reduction (%)    | N/A        | Baseline     | 7.71         | 5.18
+Added Range Gained (km)        | N/A        | 0.000        | -0.070       | -0.084
+=========================================================================================
+
+
+========================================================
+         UNIFIED EV THERMAL SIMULATION SUMMARY
+========================================================
+Total Duration              : 2000 s
+Total Distance Travelled    : 10.216 km
+Net Battery Energy Consumed : 2295.08 Wh
+Peak Heat Generation        : 3772.83 W
+Peak Ohmic Heat Loss        : 3752.46 W
+Maximum Battery Temperature : 59.27 °C
+Temperature Rise (Uncooled) : 34.27 °C
+Initial SOC                 : 90.00 %
+Final SOC                   : 100.00 %
+========================================================
+
+[SUCCESS] All time-series objects exported to Base Workspace & EV_Thermal_Inputs.mat!
+
+=======================================================
+  Total Script Execution Time: 222.876 seconds
+=======================================================
