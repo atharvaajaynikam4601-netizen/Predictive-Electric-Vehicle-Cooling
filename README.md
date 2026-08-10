@@ -134,7 +134,7 @@ $$P_{wheel} = \frac{F_{total}\,v}{\eta_{tire}} \qquad\qquad \omega_{base} = \fra
 
 The motor can only deliver as much torque as its constant-torque / constant-power envelope allows:
 
-$$T_{avail} = \begin{cases} T_{motor,max} & \omega \le \omega_{base} \quad \text{(constant-torque region)} \\[4pt] \dfrac{P_{motor,max}}{\omega} & \omega > \omega_{base} \quad \text{(constant-power / field-weakening region)} \end{cases}$$
+$$T_{avail} = \begin{cases} T_{motor,max} & \omega \le \omega_{base} \quad \text{(constant-torque region)} \\ \dfrac{P_{motor,max}}{\omega} & \omega > \omega_{base} \quad \text{(constant-power / field-weakening region)} \end{cases}$$
 
 Regenerative braking is capped at $T_{regen,max} = 120\ \text{Nm}$ and disabled below $v_{min,regen} = 1.5\ \text{m/s}$ to represent motor back-EMF limitations.
 
@@ -176,7 +176,7 @@ with $C_{th} = 45000\ \text{J/K}$ and $R_{th} = 1.5\ \text{K/W}$. The Simscape F
 
 ## 4.7 Controller 1 — Reactive Baseline (Hysteresis)
 
-$$Q_{cooling} = \begin{cases} Q_{cooling,max}\ (2000\ \text{W}) & T_{batt} \ge T_{on}\ (35\,^\circ\text{C}) \\[4pt] 0 & T_{batt} \le T_{off}\ (32\,^\circ\text{C}) \\[4pt] \text{unchanged (hold last state)} & \text{otherwise} \end{cases}$$
+$$Q_{cooling} = \begin{cases} Q_{cooling,max}\ (2000\ \text{W}) & T_{batt} \ge T_{on}\ (35\,^\circ\text{C}) \\ 0 & T_{batt} \le T_{off}\ (32\,^\circ\text{C}) \\ \text{unchanged (hold last state)} & \text{otherwise} \end{cases}$$
 
 This is a conventional thermostat: it cannot act until the battery has already crossed the trip point, and it cannot anticipate that heat is about to fall or rise.
 
@@ -196,7 +196,7 @@ $$\overline{Q}_{pred} = \text{mean}\big(Q_{heat}(t \,..\, t{+}H_p)\big), \qquad 
 
 and the commanded cooling power is:
 
-$$Q_{cooling} = \begin{cases} Q_{cooling,max} & \text{incoming charge flag} \ \wedge\ T_{batt} > 28\,^\circ\text{C} \quad \text{(charger pre-cool)} \\[6pt] 0.75\,Q_{cooling,max} & \hat{\theta}_{throttle} > 50\%\ \wedge\ T_{batt} > 29\,^\circ\text{C} \quad \text{(throttle pre-cool)} \\[6pt] \text{clamp}\!\left(\overline{Q}_{pred} + \dfrac{C_{th}\,(T_{batt}-T_{set})}{\tau_{control}},\ 0,\ Q_{cooling,max}\right) & T_{batt} \ge T_{set}\ (32\,^\circ\text{C}) \\[10pt] 0 & \text{otherwise} \end{cases}$$
+$$Q_{cooling} = \begin{cases} Q_{cooling,max} & \text{incoming charge flag} \ \wedge\ T_{batt} > 28\,^\circ\text{C} \quad \text{(charger pre-cool)} \\ 0.75\,Q_{cooling,max} & \hat{\theta}_{throttle} > 50\%\ \wedge\ T_{batt} > 29\,^\circ\text{C} \quad \text{(throttle pre-cool)} \\ \text{clamp}\!\left(\overline{Q}_{pred} + \dfrac{C_{th}\,(T_{batt}-T_{set})}{\tau_{control}},\ 0,\ Q_{cooling,max}\right) & T_{batt} \ge T_{set}\ (32\,^\circ\text{C}) \\ 0 & \text{otherwise} \end{cases}$$
 
 This directly implements the brief's request for a controller informed by *"charge rates, throttle position, and location data."*
 
