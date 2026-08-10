@@ -258,6 +258,7 @@ $$\Delta\text{range} = \frac{E_{base} - E_{x}}{\text{specific consumption (Wh/km
 | `scripts/ev_eneergy_model_realistic_predictive_cooling.m` | UDDS-based powertrain + battery model; generates `EV_Thermal_Inputs.mat` (`Q_heat_ts`, `v_ts`, `SOC_ts`, `T_amb_ts`) consumed by the Simscape Fluids plant |
 | `scripts/Dynamic_Loads.m` | Synthetic 2000 s multi-phase mission (drive → fast-charge → soak); implements and benchmarks all three controllers (Steps 4–6) plus the Kalman SOC estimator; produces `data/Step3_Dynamic_Loads.mat` |
 | `models/EV_Predictive_Cooling_Plant.slx` | Closed-loop Simscape Fluids plant template; its embedded controller block is a plain reactive thermostat (`reactive_cooling_controller`), despite the filename — kept as the original closed-loop template the other controller variants are cloned from |
+| `models/EV_Predictive_Cooling_Plant_Preview.slx` | Earlier iteration of the plant model, predating the `_Reactive`/`_FixedHighFlow` split; kept for provenance, not part of the active build |
 | `models/EV_Predictive_Cooling_Plant_FixedHighFlow.slx` | Open-loop constant-flow reference plant for isolating plant vs. controller behaviour |
 | `models/EV_Predictive_Cooling_Plant_Reactive.slx` | Reactive baseline controller (hysteresis, `T_on`=32°C/`T_off`=30°C) wired into the Simscape Fluids plant; the validated diagnostics in Section 6.1 come from this model |
 | `models/EV_Predictive_Cooling_Plant_PredictiveLookahead.slx` | Predictive lookahead controller (Section 4.8's heat-generation-forecast branch only — see scope note below) wired into the *same* Simscape Fluids plant as the reactive model; built by `scripts/build_predictive_mpc_models.m` |
@@ -368,7 +369,7 @@ OCV_curve = [300, 320, 335, 345, 350, 355, 360, 365, 372, 380, 390];
 
 ```
 run_project.m      Single entry point — runs the full pipeline end-to-end (see below)
-models/    EV_Predictive_Cooling_Plant.slx, _FixedHighFlow.slx, _Reactive.slx, _PredictiveLookahead.slx, _MPC.slx
+models/    EV_Predictive_Cooling_Plant.slx, _Preview.slx, _FixedHighFlow.slx, _Reactive.slx, _PredictiveLookahead.slx, _MPC.slx
 models/+controllers/  matlab.System controller classes (predictive lookahead, MPC) shared by the Simscape variants
 scripts/   Dynamic_Loads.m, ev_eneergy_model_realistic_predictive_cooling.m, build_predictive_mpc_models.m, and earlier powertrain iterations
 data/      uddsdc.csv, Step3_Dynamic_Loads.mat, EV_Thermal_Inputs.mat  (drive-cycle input and generated/consumed signal exports)
