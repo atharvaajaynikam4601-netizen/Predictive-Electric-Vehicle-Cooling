@@ -201,6 +201,8 @@ $$Q_{cooling} = \begin{cases} Q_{cooling,max} & \text{incoming charge flag} \ \w
 
 This directly implements the brief's request for a controller informed by *"charge rates, throttle position, and location data."*
 
+> **Simscape port scope note.** `models/+controllers/PredictiveLookaheadController.m` ports only the heat-generation-forecast branch of this logic into the Simscape Fluids plant. The charger-proximity and throttle-lookahead branches are not ported, because the UDDS-derived scenario driving that plant has no route-position or throttle signal wired into it — only the `Q_heat_ts` heat-load timeseries. All three forecast branches remain implemented and benchmarked together in `scripts/Dynamic_Loads.m`.
+
 ## 4.9 Controller 3 — Constrained Nonlinear MPC
 
 A receding-horizon MPC solves, at every timestep, for the cooling-power sequence over a 120 s horizon that minimises a weighted cost while strictly enforcing the 35 °C safety limit:
@@ -255,9 +257,13 @@ $$\Delta\text{range} = \frac{E_{base} - E_{x}}{\text{specific consumption (Wh/km
 |---|---|
 | `scripts/ev_eneergy_model_realistic_predictive_cooling.m` | UDDS-based powertrain + battery model; generates `EV_Thermal_Inputs.mat` (`Q_heat_ts`, `v_ts`, `SOC_ts`, `T_amb_ts`) consumed by the Simscape Fluids plant |
 | `scripts/Dynamic_Loads.m` | Synthetic 2000 s multi-phase mission (drive → fast-charge → soak); implements and benchmarks all three controllers (Steps 4–6) plus the Kalman SOC estimator; produces `data/Step3_Dynamic_Loads.mat` |
-| `models/EV_Predictive_Cooling_Plant.slx` | Closed-loop Simscape Fluids plant, controller-commanded coolant flow |
+| `models/EV_Predictive_Cooling_Plant.slx` | Closed-loop Simscape Fluids plant template; its embedded controller block is a plain reactive thermostat (`reactive_cooling_controller`), despite the filename — kept as the original closed-loop template the other controller variants are cloned from |
 | `models/EV_Predictive_Cooling_Plant_FixedHighFlow.slx` | Open-loop constant-flow reference plant for isolating plant vs. controller behaviour |
-| `models/EV_Predictive_Cooling_Plant_Reactive.slx` | Reactive baseline controller wired into the Simscape Fluids plant |
+| `models/EV_Predictive_Cooling_Plant_Reactive.slx` | Reactive baseline controller (hysteresis, `T_on`=32°C/`T_off`=30°C) wired into the Simscape Fluids plant; the validated diagnostics in Section 6.1 come from this model |
+| `models/EV_Predictive_Cooling_Plant_PredictiveLookahead.slx` | Predictive lookahead controller (Section 4.8's heat-generation-forecast branch only — see scope note below) wired into the *same* Simscape Fluids plant as the reactive model; built by `scripts/build_predictive_mpc_models.m` |
+| `models/EV_Predictive_Cooling_Plant_MPC.slx` | Full nonlinear MPC controller (Section 4.9, identical cost/constraint functions as `Dynamic_Loads.m`) wired into the *same* Simscape Fluids plant; built by `scripts/build_predictive_mpc_models.m` |
+| `models/+controllers/PredictiveLookaheadController.m`, `MPCCoolingController.m` | `matlab.System` classes implementing the two controllers above as drop-in replacements for the reactive controller's block, so all three run on identical plant physics |
+| `scripts/build_predictive_mpc_models.m` | Clones `EV_Predictive_Cooling_Plant_Reactive.slx`, deletes its reactive controller block, and wires in the predictive/MPC `matlab.System` controllers in its place — see [Section 9](#9-status-and-next-steps) for verification status |
 | `scripts/ev_energy_model.m`, `ev_energy_model_realistic.m` | Earlier powertrain-only iterations (UDDS energy/SOC study), retained for provenance |
 | `scripts/P4_Hybrid_Architectural_Transition.m` | Exploratory script from the architectural transition between the powertrain-only and cooling-plant phases of the project |
 | `source_powertrain/` | Original MATLAB Drive export of the antecedent powertrain project; kept as archival source material, not part of the active build |
@@ -361,8 +367,9 @@ OCV_curve = [300, 320, 335, 345, 350, 355, 360, 365, 372, 380, 390];
 
 ```
 run_project.m      Single entry point — runs the full pipeline end-to-end (see below)
-models/    EV_Predictive_Cooling_Plant.slx, _FixedHighFlow.slx, _Reactive.slx  (Simscape Fluids plant + controllers)
-scripts/   Dynamic_Loads.m, ev_eneergy_model_realistic_predictive_cooling.m, and earlier powertrain iterations
+models/    EV_Predictive_Cooling_Plant.slx, _FixedHighFlow.slx, _Reactive.slx, _PredictiveLookahead.slx, _MPC.slx
+models/+controllers/  matlab.System controller classes (predictive lookahead, MPC) shared by the Simscape variants
+scripts/   Dynamic_Loads.m, ev_eneergy_model_realistic_predictive_cooling.m, build_predictive_mpc_models.m, and earlier powertrain iterations
 data/      uddsdc.csv, Step3_Dynamic_Loads.mat, EV_Thermal_Inputs.mat  (drive-cycle input and generated/consumed signal exports)
 docs/      Battery_Thermal_Diagnostics_Final_Report.docx, Dynamic_Loads.pdf, Reactive_Model_Diagnostics.pdf
 results/   Final Results/  — generated figures (temperature, energy, benchmarking plots)
@@ -375,26 +382,27 @@ source_powertrain/  archival export of the antecedent powertrain (UDDS energy/SO
 run_project
 ```
 
-This runs the full system end-to-end with no manual steps: it (1) regenerates the UDDS-based thermal/electrical input signals, (2) runs the MATLAB-only reactive vs. predictive vs. MPC controller comparison (Section 6.2), and (3) simulates the Simscape Fluids reactive-baseline plant (Section 6.1). Step 3 requires Simulink and Simscape Fluids; if unavailable it is skipped with a message and steps 1-2 still complete.
+This runs the full system end-to-end with no manual steps: it (1) regenerates the UDDS-based thermal/electrical input signals, (2) runs the MATLAB-only reactive vs. predictive vs. MPC controller comparison (Section 6.2), (3) simulates the Simscape Fluids reactive-baseline plant (Section 6.1), and (4) builds and simulates the predictive-lookahead and MPC Simscape Fluids plant variants (Section 5). Steps 3-4 require Simulink, Simscape Fluids, and (for the MPC controller) Optimization Toolbox; if unavailable they are skipped with a message and the earlier steps still complete.
 
 To run an individual stage instead of the full pipeline:
 
 ```matlab
 run("scripts/Dynamic_Loads.m")                                    % MATLAB-only controller comparison (Section 6.2)
 run("scripts/ev_eneergy_model_realistic_predictive_cooling.m")    % regenerate EV_Thermal_Inputs.mat
-open("models/EV_Predictive_Cooling_Plant_Reactive.slx")           % open the Simscape Fluids plant
+run("scripts/build_predictive_mpc_models.m")                      % (re)build the predictive/MPC Simscape variants
+open("models/EV_Predictive_Cooling_Plant_Reactive.slx")           % open any of the three Simscape Fluids plants
 ```
 
 ---
 
 # 9 Status and Next Steps
 
-This mirrors the recommended sequence recorded in `docs/Battery_Thermal_Diagnostics_Final_Report.docx`:
+Steps 1-2 mirror the recommended sequence recorded in `docs/Battery_Thermal_Diagnostics_Final_Report.docx`; steps 3-4 close the gap that report's own "next Simulink step" section called out.
 
 1. **Complete** — battery thermal plant and reactive/baseline controller validated against the UDDS scenario in the Simscape Fluids model (Section 6.1).
 2. **Complete** — reactive, predictive, and full-MPC controllers implemented and compared in the MATLAB control-oriented model (Section 6.2).
-3. **Open** — port the predictive and MPC controller logic from `scripts/Dynamic_Loads.m` into `models/EV_Predictive_Cooling_Plant.slx`, so all three controllers are benchmarked on the *same* Simscape Fluids plant, not only the lumped MATLAB approximation.
-4. **Open** — capture the Step 6 `fprintf` benchmark table (peak temperature, threshold exposure, chiller energy, actuator chatter, aging reduction, range gain) to a persisted results file so Section 6.2 can cite exact figures instead of plot-level trends.
+3. **Built, not yet independently verified** — `scripts/build_predictive_mpc_models.m` clones the validated reactive plant and wires in `matlab.System` predictive-lookahead and MPC controllers (`models/+controllers/`) in place of the reactive controller block, so all three run on the identical Simscape Fluids physics. This was built and reasoned through carefully, but has not been executed and confirmed error-free in MATLAB/Simulink as part of this work — run it and treat the first pass as a debugging session, not a finished result. The predictive-lookahead port is also intentionally scoped down from the full Section 4.8 logic (see the scope note in Section 4.8) — it uses only the heat-generation-forecast branch, since this plant has no route or throttle signal to drive the other two branches.
+4. **Open** — capture the Step 6 `fprintf` benchmark table (peak temperature, threshold exposure, chiller energy, actuator chatter, aging reduction, range gain) to a persisted results file so Section 6.2 can cite exact figures instead of plot-level trends. Once step 3 is verified, extend this to all three Simscape variants so Section 6.1's evidentiary tier covers all three controllers, not only the reactive baseline.
 5. **Open** — log the same signal set (`T_batt`, `T_amb`, `ΔT`, `Q_heat`, cooling power) for every controller run on the common time base, per the diagnostic methodology already validated for the reactive case.
 
 ---

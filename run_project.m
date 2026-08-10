@@ -7,13 +7,17 @@
 %        drive/fast-charge/soak stress scenario.
 %     3. Simulate the Simscape Fluids reactive-baseline cooling plant using
 %        the signals generated in step 1.
+%     4. Build (if needed) and simulate the predictive-lookahead and MPC
+%        Simscape Fluids plant variants, so all three controllers run on
+%        the identical physical plant, not only the MATLAB approximation.
 %
 %   Usage: open this file in MATLAB and press Run, or from the command
 %   window with the repository as the current folder: run_project
 %
 %   Requirements: MATLAB, Optimization Toolbox (fmincon, used by the MPC
-%   controller in step 2), Simulink and Simscape Fluids (used by step 3 —
-%   step 3 is skipped with a message if these are not installed).
+%   controller in steps 2 and 4), Simulink and Simscape Fluids (used by
+%   steps 3 and 4). Steps 3-4 are skipped with a message if these are not
+%   installed.
 
 clc; close all; clearvars;
 
@@ -35,7 +39,7 @@ fprintf('================================================================\n');
 run('Dynamic_Loads.m');
 
 fprintf('\n================================================================\n');
-fprintf(' STEP 3/3: Simulating the Simscape Fluids reactive-baseline plant\n');
+fprintf(' STEP 3/4: Simulating the Simscape Fluids reactive-baseline plant\n');
 fprintf('================================================================\n');
 try
     sim('EV_Predictive_Cooling_Plant_Reactive.slx');
@@ -43,6 +47,20 @@ try
 catch simErr
     fprintf(2, 'Simscape simulation skipped: %s\n', simErr.message);
     fprintf('(Step 3 requires Simulink and Simscape Fluids. Steps 1-2 above still completed successfully.)\n');
+end
+
+fprintf('\n================================================================\n');
+fprintf(' STEP 4/4: Building and simulating the predictive/MPC Simscape variants\n');
+fprintf('================================================================\n');
+try
+    run('build_predictive_mpc_models.m');
+    sim('EV_Predictive_Cooling_Plant_PredictiveLookahead.slx');
+    fprintf('Predictive-lookahead Simscape plant simulation complete.\n');
+    sim('EV_Predictive_Cooling_Plant_MPC.slx');
+    fprintf('MPC Simscape plant simulation complete.\n');
+catch stepErr
+    fprintf(2, 'Step 4 skipped: %s\n', stepErr.message);
+    fprintf('(Requires Simulink, Simscape Fluids, and Optimization Toolbox. Steps 1-3 above still completed.)\n');
 end
 
 fprintf('\n[DONE] Full pipeline complete.\n');
