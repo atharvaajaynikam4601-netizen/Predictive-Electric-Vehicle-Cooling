@@ -118,71 +118,65 @@ The Simscape Fluids plant exists in three variants under `models/`:
 
 ## 4.1 Vehicle Longitudinal Dynamics
 
-```
-F_total = F_rr + F_aero + F_acc
-F_rr   = m * g * Crr
-F_aero = 0.5 * rho * Cd * A * v^2
-F_acc  = m_eq * a,        m_eq = m * (1 + delta)
-```
+The total traction force the motor must supply is the sum of rolling resistance, aerodynamic drag, and the force needed to accelerate the vehicle:
 
-`delta = 0.08` accounts for the rotational inertia of wheels, gears, and shafts. Acceleration is clamped to `[-4, 3] m/s²` to remove differentiation noise from the drive-cycle speed trace.
+$$F_{total} = F_{rr} + F_{aero} + F_{acc}$$
+
+$$F_{rr} = m\,g\,C_{rr} \qquad F_{aero} = \frac{1}{2}\,\rho\,C_d\,A\,v^2 \qquad F_{acc} = m_{eq}\,a$$
+
+$$m_{eq} = m\,(1+\delta)$$
+
+where $m$ is vehicle mass, $g$ gravity, $C_{rr}$ the rolling-resistance coefficient, $\rho$ air density, $C_d$ drag coefficient, $A$ frontal area, $v$ vehicle speed, and $a$ acceleration. $\delta = 0.08$ inflates the effective mass $m_{eq}$ to account for the rotational inertia of wheels, gears, and shafts. Acceleration is clamped to $-4 \le a \le 3\ \text{m/s}^2$ to remove differentiation noise from the drive-cycle speed trace.
 
 ## 4.2 Wheel Power and Motor Torque-Speed Envelope
 
-```
-P_wheel = (F_total * v) / eta_tire
-omega_base = P_motor_max / T_motor_max
-T_avail = T_motor_max              if omega <= omega_base   (constant-torque region)
-T_avail = P_motor_max / omega      if omega >  omega_base   (constant-power / field-weakening region)
-```
+$$P_{wheel} = \frac{F_{total}\,v}{\eta_{tire}} \qquad\qquad \omega_{base} = \frac{P_{motor,max}}{T_{motor,max}}$$
 
-Regenerative braking is capped at `T_regen_max = 120 Nm` and disabled below `v_min_regen = 1.5 m/s` to represent motor back-EMF limitations.
+The motor can only deliver as much torque as its constant-torque / constant-power envelope allows:
+
+$$T_{avail} = \begin{cases} T_{motor,max} & \omega \le \omega_{base} \quad \text{(constant-torque region)} \\[4pt] \dfrac{P_{motor,max}}{\omega} & \omega > \omega_{base} \quad \text{(constant-power / field-weakening region)} \end{cases}$$
+
+Regenerative braking is capped at $T_{regen,max} = 120\ \text{Nm}$ and disabled below $v_{min,regen} = 1.5\ \text{m/s}$ to represent motor back-EMF limitations.
 
 ## 4.3 Motor and Inverter Efficiency
 
-Drive and regen efficiency are modelled as quadratic functions of normalized torque and speed, clamped to physically realistic bands:
+Drive and regen efficiency are modelled as quadratic functions of normalized torque $T_n$ and normalized speed $\omega_n$, clamped to physically realistic bands:
 
-```
-drive_eff = 0.90 - 0.15*(1-omega_n)^2 - 0.20*(T_n-0.6)^2,   clamped to [0.75, 0.92]
-regen_eff = 0.75 - 0.20*(1-omega_n)^2 - 0.30*(T_n-0.5)^2,   clamped to [0.55, 0.80]
-```
+$$\eta_{drive} = 0.90 - 0.15\,(1-\omega_n)^2 - 0.20\,(T_n-0.6)^2, \qquad 0.75 \le \eta_{drive} \le 0.92$$
+
+$$\eta_{regen} = 0.75 - 0.20\,(1-\omega_n)^2 - 0.30\,(T_n-0.5)^2, \qquad 0.55 \le \eta_{regen} \le 0.80$$
 
 ## 4.4 Battery Electrical Model
 
 Open-circuit voltage comes from an 11-point SOC–OCV lookup table (`interp1`, 300–390 V over SOC 0–1). Internal resistance is a full **2-D interpolant** over SOC and temperature (`griddedInterpolant`, 5×5 grid, 0–55 °C, SOC 0.1–1.0), so resistance — and therefore heat generation — responds to both charge state and how hot the pack already is:
 
-```
-I_batt  = P_batt / V_nom
-R_int   = F_Rint(SOC, T_batt)          % 2-D lookup
-V_batt  = V_oc(SOC) - I_batt * R_int
-SOC(k)  = SOC(k-1) - (I_batt * V_nom * dt) / (Batt_capacity * 3600)
-```
+$$I_{batt} = \frac{P_{batt}}{V_{nom}} \qquad\qquad R_{int} = F_{Rint}(SOC,\,T_{batt}) \quad \text{(2-D lookup)}$$
+
+$$V_{batt} = V_{oc}(SOC) - I_{batt}\,R_{int}$$
+
+$$SOC_k = SOC_{k-1} - \frac{I_{batt}\,V_{nom}\,\Delta t}{3600\,C_{batt}}$$
 
 ## 4.5 Battery Heat Generation (Ohmic + Entropic)
 
 Heat generation is split into an irreversible ohmic term and a reversible entropic term (Huria-style formulation), rather than the `I²R`-only approximation used in a purely resistive model:
 
-```
-Q_ohmic    = I_batt^2 * R_int
-Q_entropic = I_batt * T_kelvin * (dU/dT),     dU/dT = -0.00022 V/K
-Q_heat     = Q_ohmic + Q_entropic
-```
+$$Q_{ohmic} = I_{batt}^2\,R_{int}$$
+
+$$Q_{entropic} = I_{batt}\,T_{K}\,\frac{dU}{dT}, \qquad \frac{dU}{dT} = -0.00022\ \text{V/K}$$
+
+$$Q_{heat} = Q_{ohmic} + Q_{entropic}$$
 
 ## 4.6 Lumped Battery Thermal Plant
 
-```
-Q_passive = (T_batt - T_amb) / R_th
-dT/dt     = (Q_heat - Q_passive - Q_cooling) / C_th
-```
+$$Q_{passive} = \frac{T_{batt} - T_{amb}}{R_{th}}$$
 
-with `C_th = 45000 J/K` and `R_th = 1.5 K/W`. The Simscape Fluids plant (Section 3) replaces this lumped equation with a physical Thermal Mass + Cold Plate Pipe + Radiator Pipe network for validation.
+$$\frac{dT_{batt}}{dt} = \frac{Q_{heat} - Q_{passive} - Q_{cooling}}{C_{th}}$$
+
+with $C_{th} = 45000\ \text{J/K}$ and $R_{th} = 1.5\ \text{K/W}$. The Simscape Fluids plant (Section 3) replaces this lumped equation with a physical Thermal Mass + Cold Plate Pipe + Radiator Pipe network for validation.
 
 ## 4.7 Controller 1 — Reactive Baseline (Hysteresis)
 
-```
-if T_batt >= T_on  (35 °C):  cooling ON  -> Q_cooling = Q_cooling_max (2000 W)
-if T_batt <= T_off (32 °C):  cooling OFF -> Q_cooling = 0
-```
+$$Q_{cooling} = \begin{cases} Q_{cooling,max}\ (2000\ \text{W}) & T_{batt} \ge T_{on}\ (35\,^\circ\text{C}) \\[4pt] 0 & T_{batt} \le T_{off}\ (32\,^\circ\text{C}) \\[4pt] \text{unchanged (hold last state)} & \text{otherwise} \end{cases}$$
 
 This is a conventional thermostat: it cannot act until the battery has already crossed the trip point, and it cannot anticipate that heat is about to fall or rise.
 
@@ -190,18 +184,19 @@ This is a conventional thermostat: it cannot act until the battery has already c
 
 The predictive controller pre-cools *before* the temperature threshold is reached, using three lookahead signals:
 
-```
-d_to_charger      = s_charger - s_route(t)                 % route-position telematics
-incoming_charge   = (d_to_charger > 0) and (t_to_charger <= H_p)
-peak_throttle     = max(theta_throttle over next 15 s)      % accel-demand lookahead
-Q_pred_future     = mean(Q_heat over next H_p = 120 s)      % heat-generation forecast
+Three forecast signals feed the decision logic:
 
-if incoming_charge and T_batt > 28 °C:        Q_cooling = Q_cooling_max        (charger pre-cool)
-elseif peak_throttle > 50% and T_batt > 29 °C: Q_cooling = 0.75 * Q_cooling_max (throttle pre-cool)
-elseif T_batt >= T_set (32 °C):
-    Q_cooling = clamp(Q_pred_future + C_th*(T_batt - T_set)/tau_control, 0, Q_cooling_max)
-else: Q_cooling = 0
-```
+$$d_{charger} = s_{charger} - s_{route}(t) \qquad \text{(route-position telematics)}$$
+
+$$\text{incoming\_charge} = \big(d_{charger} > 0\big) \ \wedge\ \big(t_{charger} \le H_p\big)$$
+
+$$\hat{\theta}_{throttle} = \max\big(\theta_{throttle}(t \,..\, t{+}15\text{s})\big) \qquad \text{(throttle-demand lookahead)}$$
+
+$$\overline{Q}_{pred} = \text{mean}\big(Q_{heat}(t \,..\, t{+}H_p)\big), \qquad H_p = 120\ \text{s} \qquad \text{(heat-generation forecast)}$$
+
+and the commanded cooling power is:
+
+$$Q_{cooling} = \begin{cases} Q_{cooling,max} & \text{incoming\_charge} \ \wedge\ T_{batt} > 28\,^\circ\text{C} \quad \text{(charger pre-cool)} \\[6pt] 0.75\,Q_{cooling,max} & \hat{\theta}_{throttle} > 50\%\ \wedge\ T_{batt} > 29\,^\circ\text{C} \quad \text{(throttle pre-cool)} \\[6pt] \text{clamp}\!\left(\overline{Q}_{pred} + \dfrac{C_{th}\,(T_{batt}-T_{set})}{\tau_{control}},\ 0,\ Q_{cooling,max}\right) & T_{batt} \ge T_{set}\ (32\,^\circ\text{C}) \\[10pt] 0 & \text{otherwise} \end{cases}$$
 
 This directly implements the brief's request for a controller informed by *"charge rates, throttle position, and location data."*
 
@@ -209,23 +204,27 @@ This directly implements the brief's request for a controller informed by *"char
 
 A receding-horizon MPC solves, at every timestep, for the cooling-power sequence over a 120 s horizon that minimises a weighted cost while strictly enforcing the 35 °C safety limit:
 
-```
-minimize   sum_k  w_T*(T_pred(k) - T_set)^2  +  w_E*u(k)^2  +  w_dU*(u(k) - u(k-1))^2
-subject to T_pred(k+1) = T_pred(k) + dt/C_th * (Q_heat(k) - (T_pred(k)-T_amb(k))/R_th - u(k))
-           0 <= u(k) <= Q_cooling_max
-           T_pred(k) <= T_max_limit (35 °C)   for all k in horizon
-```
+$$\min_{u(1),\dots,u(H_p)} \ \sum_{k=1}^{H_p} \Big[\ w_T\,\big(T_{pred}(k) - T_{set}\big)^2 \ +\ w_E\,u(k)^2 \ +\ w_{dU}\,\big(u(k)-u(k-1)\big)^2\ \Big]$$
+
+$$\text{subject to} \quad T_{pred}(k{+}1) = T_{pred}(k) + \frac{\Delta t}{C_{th}}\left(Q_{heat}(k) - \frac{T_{pred}(k)-T_{amb}(k)}{R_{th}} - u(k)\right)$$
+
+$$0 \le u(k) \le Q_{cooling,max}, \qquad T_{pred}(k) \le T_{max}\ (35\,^\circ\text{C}) \quad \forall\,k \in \{1,\dots,H_p\}$$
 
 solved with `fmincon` (`sqp`, warm-started from the previous solution) and only the first control action of each solve is applied, in standard receding-horizon fashion. The energy weight (`w_E = 1e-5`) and slew-rate weight (`w_dU = 1e-3`) trade cooling-energy use and actuator wear against tracking accuracy.
 
 ## 4.10 SOC Estimation via Kalman Filter
 
-```
-SOC_pred = SOC_est(k-1) - I_batt(k)*dt / (Batt_Cap_Ah * 3600)
-V_oc_pred = interp1(SOC_curve, OCV_curve, SOC_pred)
-K = P*H / (H*P*H + R),      H = 100 (voltage sensitivity), R = 0.5, Q_process = 1e-6
-SOC_est(k) = SOC_pred + K*(V_meas(k) - V_oc_pred)
-```
+**Prediction (coulomb counting):**
+
+$$\widehat{SOC}_{k|k-1} = \widehat{SOC}_{k-1} - \frac{I_{batt}(k)\,\Delta t}{3600\,C_{Ah}}, \qquad P_{k|k-1} = P_{k-1} + Q_{process}$$
+
+**Update (voltage correction):**
+
+$$V_{oc,pred} = \text{interp1}(SOC_{curve},\,OCV_{curve},\,\widehat{SOC}_{k|k-1})$$
+
+$$K = \frac{P_{k|k-1}\,H}{H\,P_{k|k-1}\,H + R}, \qquad H = 100,\quad R = 0.5,\quad Q_{process} = 10^{-6}$$
+
+$$\widehat{SOC}_k = \widehat{SOC}_{k|k-1} + K\,\big(V_{meas}(k) - V_{oc,pred}\big), \qquad P_k = (1-K H)\,P_{k|k-1}$$
 
 approximating the voltage-based SOC estimation used in a real Battery Management System.
 
@@ -233,12 +232,19 @@ approximating the voltage-based SOC estimation used in a real Battery Management
 
 Instantaneous capacity-fade rate is modelled with an Arrhenius temperature dependence:
 
-```
-k_deg(T) = A_pre * exp(-E_a / (R_gas * T_kelvin)),   E_a = 31700 J/mol
-aging    = integral of k_deg(T) dt over the mission
-```
+$$k_{deg}(T) = A_{pre}\,\exp\!\left(\frac{-E_a}{R_{gas}\,T_{K}}\right), \qquad E_a = 31700\ \text{J/mol}$$
 
-Relative life extension of a controller versus the reactive baseline is `(aging_base - aging_x) / aging_base`, and additional driving range unlocked by spending less energy on cooling is `(E_base - E_x) / specific_consumption_Wh_per_km` — the two pieces of the brief's "advanced work" ask.
+$$\text{aging} = \int_{0}^{t_{end}} k_{deg}\big(T(t)\big)\,dt$$
+
+Relative life extension of a controller versus the reactive baseline is:
+
+$$\Delta\text{life} = \frac{\text{aging}_{base} - \text{aging}_{x}}{\text{aging}_{base}}$$
+
+and additional driving range unlocked by spending less energy on cooling is:
+
+$$\Delta\text{range} = \frac{E_{base} - E_{x}}{\text{specific consumption (Wh/km)}}$$
+
+— the two pieces of the brief's "advanced work" ask.
 
 ---
 
