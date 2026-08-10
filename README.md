@@ -278,7 +278,9 @@ Two independent result sets exist in this repository, and they are kept separate
 
 > **Correction.** This section previously cited `docs/Battery_Thermal_Diagnostics_Final_Report.docx` (max battery temperature 35.51°C, ΔT up to 1.94°C above ambient). That table has turned out to be unreliable: its "maximum heat generation" figure (3772.83 W) is identical to the *synthetic 2000 s stress scenario's* peak heat generation in Section 6.2 — not a value the milder UDDS drive cycle produces — and a battery cannot be actively cooled to a *higher* temperature than it reaches with no cooling at all, yet the uncooled UDDS lumped-model estimate (Section 4.6) only rises 1.63°C over the same run. Both facts point the same way: that report was generated against the wrong input signal, most likely the same base-workspace-clobbering issue described in Section 9, just occurring earlier and undetected until this pass. It is being superseded here rather than left standing.
 
-Re-running `models/EV_Predictive_Cooling_Plant_Reactive.slx` with correctly-ordered UDDS signals (`run_project`, or `scripts/ev_eneergy_model_realistic_predictive_cooling.m` immediately before the plant simulation) gives, read from the model's `Scope Block` (battery temperature in Kelvin):
+Re-running `models/EV_Predictive_Cooling_Plant_Reactive.slx` with correctly-ordered UDDS signals (`run_project`, or `scripts/ev_eneergy_model_realistic_predictive_cooling.m` immediately before the plant simulation) gives, read from the model's `Scope Block` (battery temperature in Kelvin) and `Scope Block1` (coolant mass flow command):
+
+[`results/Final Results/Reactive_Simscape_Battery_Temp_UDDS.png`](<results/Final Results/Reactive_Simscape_Battery_Temp_UDDS.png>) · [`results/Final Results/Reactive_Simscape_Coolant_Flow_UDDS.png`](<results/Final Results/Reactive_Simscape_Coolant_Flow_UDDS.png>)
 
 | Quantity | Value |
 |---|---|
