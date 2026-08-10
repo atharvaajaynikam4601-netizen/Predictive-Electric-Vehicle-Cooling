@@ -483,4 +483,5 @@ If Simulink, Simscape Fluids, or Optimization Toolbox are unavailable, `run_proj
 
 ## 12.3 Contact
 
-Atharva Ajay Nikam: GitHub - [github.com/atharvaajaynikam4601-netizen](https://github.com/atharvaajaynikam4601-netizen) | Email Address - atharvaajaynikam4601@gmail.com
+Atharva Ajay Nikam
+GitHub - [github.com/atharvaajaynikam4601-netizen](https://github.com/atharvaajaynikam4601-netizen) | Email Address - atharvaajaynikam4601@gmail.com
