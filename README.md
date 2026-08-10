@@ -360,25 +360,29 @@ OCV_curve = [300, 320, 335, 345, 350, 355, 360, 365, 372, 380, 390];
 # 8 Repository Structure and How to Run
 
 ```
+run_project.m      Single entry point — runs the full pipeline end-to-end (see below)
 models/    EV_Predictive_Cooling_Plant.slx, _FixedHighFlow.slx, _Reactive.slx  (Simscape Fluids plant + controllers)
 scripts/   Dynamic_Loads.m, ev_eneergy_model_realistic_predictive_cooling.m, and earlier powertrain iterations
-data/      Step3_Dynamic_Loads.mat, EV_Thermal_Inputs.mat  (generated/consumed signal exports)
+data/      uddsdc.csv, Step3_Dynamic_Loads.mat, EV_Thermal_Inputs.mat  (drive-cycle input and generated/consumed signal exports)
 docs/      Battery_Thermal_Diagnostics_Final_Report.docx, Dynamic_Loads.pdf, Reactive_Model_Diagnostics.pdf
 results/   Final Results/  — generated figures (temperature, energy, benchmarking plots)
 source_powertrain/  archival export of the antecedent powertrain (UDDS energy/SOC) project
 ```
 
-To reproduce the MATLAB-only controller comparison (Section 6.2):
+**Single entry point.** From MATLAB, with this repository as the working folder, run:
 
 ```matlab
-run("scripts/Dynamic_Loads.m")
+run_project
 ```
 
-To regenerate the thermal-load signals feeding the Simscape Fluids plant, then open and run the plant models:
+This runs the full system end-to-end with no manual steps: it (1) regenerates the UDDS-based thermal/electrical input signals, (2) runs the MATLAB-only reactive vs. predictive vs. MPC controller comparison (Section 6.2), and (3) simulates the Simscape Fluids reactive-baseline plant (Section 6.1). Step 3 requires Simulink and Simscape Fluids; if unavailable it is skipped with a message and steps 1-2 still complete.
+
+To run an individual stage instead of the full pipeline:
 
 ```matlab
-run("scripts/ev_eneergy_model_realistic_predictive_cooling.m")   % writes EV_Thermal_Inputs.mat
-open("models/EV_Predictive_Cooling_Plant_Reactive.slx")
+run("scripts/Dynamic_Loads.m")                                    % MATLAB-only controller comparison (Section 6.2)
+run("scripts/ev_eneergy_model_realistic_predictive_cooling.m")    % regenerate EV_Thermal_Inputs.mat
+open("models/EV_Predictive_Cooling_Plant_Reactive.slx")           % open the Simscape Fluids plant
 ```
 
 ---

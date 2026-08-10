@@ -26,7 +26,8 @@ SOC_init = 0.9;       % Initial SOC (90%)
 %% =================================================
 %% PART 2: IMPORT UDDS DRIVE CYCLE
 %% =================================================
-udds_data = readtable("uddsdc.csv");
+udds_csv_path = fullfile(fileparts(mfilename('fullpath')), '..', 'data', 'uddsdc.csv');
+udds_data = readtable(udds_csv_path);
 
 t = udds_data.UDDS;       % Time (s)
 v_mph = udds_data.Var2;   % Speed (mph)
