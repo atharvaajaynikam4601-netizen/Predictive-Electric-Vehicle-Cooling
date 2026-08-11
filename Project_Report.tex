@@ -9,6 +9,7 @@
 \usepackage{url}
 \usepackage{cite}
 \usepackage{caption}
+\usepackage{seqsplit}
 
 \graphicspath{{results/Final Results/}}
 
@@ -291,16 +292,22 @@ Table~\ref{tab:files} summarises the repository's key MATLAB and Simulink artifa
 \centering
 \caption{Key implementation files}
 \label{tab:files}
-\begin{tabular}{@{}p{0.42\linewidth}p{0.5\linewidth}@{}}
+\small
+\begin{tabular}{@{}p{0.46\linewidth}p{0.44\linewidth}@{}}
 \toprule
 \textbf{File} & \textbf{Role} \\
 \midrule
-\texttt{ev\_eneergy\_model\_realistic\_predictive\_cooling.m} & UDDS-based powertrain + battery model; generates \texttt{EV\_Thermal\_Inputs.mat} \\
-\texttt{Dynamic\_Loads.m} & Synthetic 2000\,s multi-phase mission; implements and benchmarks all three controllers plus Kalman SOC estimator \\
-\texttt{EV\_Predictive\_Cooling\_Plant\_Reactive.slx} & Reactive baseline wired into Simscape Fluids plant \\
-\texttt{EV\_Predictive\_Cooling\_Plant\_FixedHighFlow.slx} & Open-loop constant-flow reference plant \\
-\texttt{build\_predictive\_mpc\_models.m} & Clones reactive plant; wires in \texttt{matlab.System} predictive/MPC controllers \\
-\texttt{run\_project.m} & Single entry point; runs full pipeline end-to-end \\
+\texttt{\seqsplit{ev\_eneergy\_model\_realistic\_predictive\_cooling.m}} & UDDS-based powertrain + battery model; generates \texttt{\seqsplit{EV\_Thermal\_Inputs.mat}} \\
+\addlinespace
+\texttt{\seqsplit{Dynamic\_Loads.m}} & Synthetic 2000\,s multi-phase mission; implements and benchmarks all three controllers plus Kalman SOC estimator \\
+\addlinespace
+\texttt{\seqsplit{EV\_Predictive\_Cooling\_Plant\_Reactive.slx}} & Reactive baseline wired into Simscape Fluids plant \\
+\addlinespace
+\texttt{\seqsplit{EV\_Predictive\_Cooling\_Plant\_FixedHighFlow.slx}} & Open-loop constant-flow reference plant \\
+\addlinespace
+\texttt{\seqsplit{build\_predictive\_mpc\_models.m}} & Clones reactive plant; wires in \texttt{matlab.System} predictive/MPC controllers \\
+\addlinespace
+\texttt{\seqsplit{run\_project.m}} & Single entry point; runs full pipeline end-to-end \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -334,7 +341,7 @@ Two independent result sets are reported, from different plants and scenarios, k
 
 \subsection{Simulink Reactive-Baseline Diagnostics (UDDS Scenario)}
 
-Re-running \texttt{EV\_Predictive\_Cooling\_Plant\_Reactive.slx} on the real EPA UDDS drive cycle (1369\,s) shows the battery temperature rising only from approximately 300.0\,K (26.85\textdegree C) to 300.3\,K ($\sim$27.2\textdegree C) -- Fig.~\ref{fig:udds_temp} -- with the reactive controller's 32\textdegree C threshold never triggered, so coolant flow remains at its minimum baseline value throughout (Fig.~\ref{fig:udds_flow}). This confirms the Simscape Fluids plant and reactive controller behave physically sensibly on real urban driving, though this scenario alone is mild enough that it does not exercise active cooling or a thermal safety margin -- which is precisely why the more demanding stress scenario of Section~\ref{sec:results}B is needed to evaluate the predictive and MPC controllers meaningfully.
+Re-running \texttt{\seqsplit{EV\_Predictive\_Cooling\_Plant\_Reactive.slx}} on the real EPA UDDS drive cycle (1369\,s) shows the battery temperature rising only from approximately 300.0\,K (26.85\textdegree C) to 300.3\,K ($\sim$27.2\textdegree C) -- Fig.~\ref{fig:udds_temp} -- with the reactive controller's 32\textdegree C threshold never triggered, so coolant flow remains at its minimum baseline value throughout (Fig.~\ref{fig:udds_flow}). This confirms the Simscape Fluids plant and reactive controller behave physically sensibly on real urban driving, though this scenario alone is mild enough that it does not exercise active cooling or a thermal safety margin -- which is precisely why the more demanding stress scenario of Section~\ref{sec:results}B is needed to evaluate the predictive and MPC controllers meaningfully.
 
 \begin{figure}[t]
 \centering
